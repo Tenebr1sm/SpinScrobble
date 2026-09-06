@@ -1,0 +1,22 @@
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Test Audio Files & Recordings
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# VS Code Settings & OS Files
+.vscode/
+.DS_Store
+*.log
