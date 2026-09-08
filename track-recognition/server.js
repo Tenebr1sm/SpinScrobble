@@ -38,3 +38,13 @@ app.get('/callback', async (req, res) => {
 app.listen(port, () => {
   console.log(`Auth server running. Open http://localhost:${port}/login in your browser.`);
 });
+
+/* 
+run node server.js
+open localhost:3000/login
+copy session key into .env file
+ex: LASTFM_SESSION_KEY=whateverthekeyis
+kill server
+run node test-scrobble.js
+it should show up in scrobble profile. will send apis in dms
+*/
