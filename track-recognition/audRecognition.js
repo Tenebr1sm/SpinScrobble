@@ -2,12 +2,12 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config()
+const { scrobbleToFm } = require('./test-scrobble.js');
+require('dotenv').config();
 
 const API_KEY = process.env.audD_key
 
-
-const filePath = path.join(__dirname, 'samples', 'testSample2.mp4');
+const filePath = path.join(__dirname, 'samples', 'testSample8.mp4');
 const data = {
     'api_token': `${API_KEY}`,
     'file': fs.createReadStream(filePath),
@@ -23,7 +23,9 @@ async function uploadToAud () {
             headers: {'Content-Type': 'multipart/form-data'},
         })
 
-        console.log(response.data);
+        console.log("Stuff I need for call scrobble: \n" , response.data.result.artist,  `\n`, response.data.result.title, `\n`, response.data.result.album);
+
+        scrobbleToFm(response.data.result.artist, response.data.result.title, response.data.result.album);
     } catch (error) {
         console.log(error);
     }

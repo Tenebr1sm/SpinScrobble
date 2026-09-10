@@ -2,10 +2,12 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const FormData = require('form-data');
+const { scrobbleToFm } = require('./test-scrobble.js');
+
 require('dotenv').config()
 
 const API_KEY = process.env.shazam_key
-const filePath = path.join(__dirname, 'samples', 'testSample3.mp3');
+const filePath = path.join(__dirname, 'samples', 'testSample5.mp3');
 
 async function postToShazam () {
     try {
@@ -45,11 +47,13 @@ async function getFromShazam(url) {
                     }, 
                 });
 
-                console.log(response.data);
+                console.log(response.data.results);
                 const data = response.data;
-                console.log(`Status: ${data.status}`);
+                console.log(`Status: ${data.status} \n`);
 
-                return data;
+                console.log("Stuff I need for call scrobble: \n" , data.results[0].artist, `\n`, data.results[0].title, `\n`, data.results[0].album);
+
+                scrobbleToFm(data.results[0].artist, data.results[0].title, data.results[0].album);
 
             } catch (error) {
                 console.log(error);
