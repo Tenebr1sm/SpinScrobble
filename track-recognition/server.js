@@ -1,10 +1,14 @@
 require('dotenv').config(); 
 const express = require('express');
+
 // Imports the two functions from your new last-fm service folder
 const lastfmAuth = require('./last-fm/auth'); 
+const { processSample } = require('./sample-processor');
 
 const app = express();
 const port = 3000;
+
+app.use(express.json());
 
 // Route 1: Send the user to the Last.fm login screen
 app.get('/login', (req, res) => {
@@ -35,8 +39,27 @@ app.get('/callback', async (req, res) => {
   }
 });
 
+// Python bridge route
+app.post('/api/sample', async (req, res) => {
+    const { filepath, timestamp } = req.body;
+
+    if (!filepath || !timestamp) {
+        return res.status(400).json({ error: 'Missing filepath or timestamp' });
+    }
+
+    try {
+        const validationResult = await processSample(filepath, timestamp);
+        res.json({ status: 'processed', validation: validationResult });
+    } catch (err) {
+        console.error('[BACKEND] Error processing sample:', err);
+        res.status(500).json({ error: 'Failed to process sample' });
+    }
+});
+
+// Server intialization
 app.listen(port, () => {
-  console.log(`Auth server running. Open http://localhost:${port}/login in your browser.`);
+  console.log(`SpinScrobble backend listening on port ${port}`);
+  console.log(`Auth server running. Open http://localhost:${port}/login in your browser to authenticate.`);
 });
 
 /* 
