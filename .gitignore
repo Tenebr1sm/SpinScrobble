@@ -16,6 +16,7 @@ __pycache__/
 *.flac
 *.ogg
 !hardware/samples/*.wav
+live_sample.wav
 
 # VS Code Settings & OS Files
 .vscode/
