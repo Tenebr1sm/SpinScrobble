@@ -25,6 +25,11 @@ PLAY_THRESHOLD = -48.0              # dBFS
 NOISE_FLOOR = -68.0                 # dBFS
 MIN_SUSTAIN_CHUNKS = 7              # Wait 3.5 seconds
 
+# Rate limit protection
+SEEK_INTERVAL = 10.0                # seconds between audD requests
+CONFIRMED_COOLDOWN = 60.0           # if track found by audD, wait 60s before next request
+UNRECOGNIZED_COOLDOWN = 20.0        # if no track found by audD
+
 def get_turntable_index():
     for idx, dev in enumerate(sd.query_devices()):
         name = dev['name'].lower()
@@ -38,8 +43,15 @@ consecutive_high = 0
 consecutive_low = 0
 last_sample_time = 0.0 
 
+# Adaptive timer state
+poll_interval = SEEK_INTERVAL
+is_track_confirmed = False
+is_sending_sample = False
+
+
 def audio_callback(indata, frames, time_info, status):
     global current_state, consecutive_high, consecutive_low, last_sample_time
+    global poll_interval, is_track_confirmed, is_sending_sample
     
     if status:
         print(f"[ALSA Status] {status}", file=sys.stderr)
@@ -67,10 +79,16 @@ def audio_callback(indata, frames, time_info, status):
         consecutive_high = 0
         consecutive_low = 0
         last_sample_time = 0.0
+        is_track_confirmed = False
+        poll_interval = SEEK_INTERVAL
+
     elif current_state == "NEEDLE_LIFTED":
         current_state = "NEEDLE_DROPPED"
         consecutive_high = 0
         consecutive_low = 0
+        is_track_confirmed = False
+        poll_interval = SEEK_INTERVAL
+
     elif current_state == "NEEDLE_DROPPED":
         if raw_state == "TRACK_PLAYING":
             consecutive_high += 1
@@ -79,12 +97,15 @@ def audio_callback(indata, frames, time_info, status):
                 consecutive_high = 0
         else:
             consecutive_low += 1
+
     elif current_state == "TRACK_PLAYING":
         if raw_state != "TRACK_PLAYING":
             consecutive_low += 1
             if consecutive_low >= MIN_SUSTAIN_CHUNKS:
                 current_state = "NEEDLE_DROPPED"
                 consecutive_low = 0
+                is_track_confirmed = False
+                poll_interval = SEEK_INTERVAL
         else:
             consecutive_high = 0
 
@@ -96,15 +117,17 @@ def audio_callback(indata, frames, time_info, status):
     # Fire if music is playing, buffer is full, and 10 seconds have passed since the last API call
     if current_state == "TRACK_PLAYING" and len(audio_buffer) >= 16:
         current_time = time.time()
-        if current_time - last_sample_time >= 10.0:
+        if current_time - last_sample_time >= poll_interval and not is_sending_sample:
             last_sample_time = current_time
-            
+            is_sending_sample = True
             buffer_copy = list(audio_buffer)
             threading.Thread(target=process_and_send_sample, args=(buffer_copy,)).start()
 
 def process_and_send_sample(buffer_snapshot, sample_rate=44100):
+    global poll_interval, is_track_confirmed, is_sending_sample
     if len(buffer_snapshot) < 16:
         print("\n[API] Buffer not full yet (under 8s), skipping...")
+        is_sending_sample = False
         return
 
     # Stitch the 16 chunks into one continuous array
@@ -128,9 +151,32 @@ def process_and_send_sample(buffer_snapshot, sample_rate=44100):
     
     try:
         response = requests.post("http://localhost:3000/api/sample", json=payload, timeout=5.0)
-        print(f"\n[API] Success! Node responded: {response.json()}")
+        data = response.json()
+        print(f"\n[API] Success! Node responded: {data}")
+
+        # adjust cooldown based on whether track was recognized
+        validation = data.get("validation", {})
+        if validation:
+            accepted = validation.get("accepted", False)
+            reason = validation.get("reason", "")
+            matches = validation.get("matches", 0)
+
+            if accepted:
+                is_track_confirmed = True
+                poll_interval = CONFIRMED_COOLDOWN
+                print(f"[API TImer] Track confirmed. Next request in {CONFIRMED_COOLDOWN}s.")
+            elif reason == "No track":
+                poll_interval = UNRECOGNIZED_COOLDOWN
+                print(f"[API Timer] No track recognized. Next request in {UNRECOGNIZED_COOLDOWN}s.")
+            else:
+                poll_interval = SEEK_INTERVAL
+                print(f"[API Timer] Seeking match ({reason} | Match {matches}/3). Next request in {SEEK_INTERVAL}s.")
+
     except requests.RequestException as e:
         print(f"\n[API] Node backend unreachable. Error: {e}")
+        poll_interval = UNRECOGNIZED_COOLDOWN
+    finally:
+        is_sending_sample = False
 
 if __name__ == "__main__":
     device_idx = get_turntable_index()
