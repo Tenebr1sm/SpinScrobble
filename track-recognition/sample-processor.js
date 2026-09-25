@@ -5,14 +5,14 @@ const { scrobbleToFm } = require('./lastfm-client.js');
 
 const validator = new SongValidator({
         requiredMatches: 3,
-        timecodeTolerance: 4
+        timecodeTolerance: 12
 });
 
 async function processSample(filePath, capturedAt) {
     console.log('\n================================');
     console.log('File:', path.basename(filePath));
 
-    console.log('Mock capture timestamp:', capturedAt);
+    console.log('Capture timestamp:', capturedAt);
 
     let track;
 

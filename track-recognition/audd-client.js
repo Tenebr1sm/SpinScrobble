@@ -3,6 +3,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 const API_KEY = process.env.audD_key
+const path = require('path');
 
 
 async function uploadToAud (filePath) {
@@ -25,8 +26,12 @@ async function uploadToAud (filePath) {
             return null;
         }
 
-        return response.data.result;
+        if (!response.data.result) {
+            console.log('[BACKEND] AudD could not identify this audio sample.');
+            return null;
+        }
 
+        return response.data.result;
 
     } catch (error) {
         console.error(`failed to recognize ${filePath}:`, error.response?.data ?? error.message);
@@ -34,5 +39,6 @@ async function uploadToAud (filePath) {
     }
 }
 
-
 module.exports = { uploadToAud };
+
+
