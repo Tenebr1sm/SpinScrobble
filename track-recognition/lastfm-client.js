@@ -10,9 +10,12 @@ function scrobbleToFm(artistName, trackName, albumName){
   lastfm.setNowPlaying(`${artistName}`, `${trackName}`, `${albumName}`);
 
   // Simulate song finishing
-  setTimeout(() => {
-    lastfm.scrobbleTrack(`${artistName}`, `${trackName}`, startTime, `${albumName}`);
-  }, 5000);
+  // setTimeout(() => {
+  //   lastfm.scrobbleTrack(`${artistName}`, `${trackName}`, startTime, `${albumName}`);
+  // }, 5000);
+
+  return lastfm.scrobbleTrack(`${artistName}`, `${trackName}`, startTime, `${albumName}`);
+
 };
 
 

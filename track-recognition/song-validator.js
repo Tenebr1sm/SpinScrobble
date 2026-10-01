@@ -107,7 +107,6 @@ class SongValidator {
         }
 
         //track has three matches, and timecodes line up. Listing this as a confirmed track
-        // const alreadyConfirmed = this.currentTrack?.id === id;
         const alreadyConfirmed = this.currentTrack
             ? areTracksIdentical(this.currentTrack.track, track)
             : false;

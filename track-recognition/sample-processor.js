@@ -37,8 +37,22 @@ async function processSample(filePath, capturedAt) {
     const validation = validator.process(track, capturedAt);
 
     if (validation.accepted && validation.newTrack) {
+
+        const confirmedTrack = validation.track;
+
         console.log('\n*** NEW CONFIRMED TRACK ***');
-        console.log(`${track.artist} - ${track.title}`);
+        console.log(`${confirmedTrack.artist} - ${confirmedTrack.title}`);
+
+        try {
+            await scrobbleToFm(
+                confirmedTrack.artist,
+                confirmedTrack.title,
+                confirmedTrack.album ?? ''
+            );
+        } catch (e) {
+            console.error('Last.fm submission failed: ', e);
+        }
+
     }
 
     console.log('Validation result:');
