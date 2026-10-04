@@ -53,12 +53,12 @@ export default function App() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f4f5', justifyContent: 'center', padding: 20 }}>
         <StatusBar style="auto" />
         
-        <Text variant="headlineMedium" style={{ textAlign: 'center', marginBottom: 24, fontWeight: 'bold' }}>
+        <Text variant="headlineMedium" style={{ textAlign: 'center', marginBottom: 24, fontWeight: 'bold', color: 'black' }}>
           SpinScrobble
         </Text>
 
         {track ? (
-          <Card mode="elevated" style={{ padding: 10 }}>
+          <Card mode="elevated" style={{ padding: 10, backgroundColor: 'black' }}>
             <Card.Title title="Now Playing" subtitle="Track Confirmed" />
             
             {track.artworkUrl && !imageFailed ? (
@@ -75,14 +75,14 @@ export default function App() {
             )}
             
             <Card.Content style={{ marginTop: 16, alignItems: 'center' }}>
-              <Text variant="titleLarge" style={{ fontWeight: 'bold', textAlign: 'center' }}>
+              <Text variant="titleLarge" style={{ fontWeight: 'bold', textAlign: 'center', color: 'white' }}>
                 {track.title}
               </Text>
-              <Text variant="bodyLarge" style={{ marginTop: 4, color: '#555' }}>
+              <Text variant="bodyLarge" style={{ marginTop: 4, color: 'white' }}>
                 {track.artist}
               </Text>
               {track.album ? (
-                <Text variant="labelMedium" style={{ marginTop: 4, color: '#888' }}>
+                <Text variant="labelMedium" style={{ marginTop: 4, color: 'white' }}>
                   {track.album}
                 </Text>
               ) : null}
