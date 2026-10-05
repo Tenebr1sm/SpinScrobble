@@ -78,6 +78,8 @@ class SongValidator {
                 capturedAt
             );
 
+            this.currentTrack = null;
+
             return {
                 accepted: false,
                 reason: 'elapsed time is not within the threshold',

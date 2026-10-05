@@ -1,18 +1,22 @@
 //Normalizes song or artist name, and returns the resulting string  
 function normalizeText(text, isTitle = false) {
     if (!text) return "";
+
     let cleaned = text.toLowerCase().trim();
 
     if (isTitle) {
-        
-        const structuralIndex = cleaned.search(/(?:\s+-\s*|\s*[\(\[][^)]*)/);
+        const structuralIndex = cleaned.search(/[,(\[]|\s+-\s+/);
+
         if (structuralIndex !== -1) {
             cleaned = cleaned.substring(0, structuralIndex);
         }
     }
 
-    return cleaned.replace(/[-_.:|()[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+    return cleaned.replace(/[-_.:|()[\]]/g, " ").replace(/\s+/g, " ").trim();
 }
+
+
+
 
 /*
  * CASE 1: Direct MusicBrainz Recording ID Match
