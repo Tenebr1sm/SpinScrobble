@@ -1,7 +1,9 @@
+const { areTracksIdentical } = require('./track-utils.js');
+
 class SongValidator {
     constructor(options = {}) {
         this.requiredMatches = options.requiredMatches ?? 3;
-        this.timecodeTolerance = options.timecodeTolerance ?? 4;
+        this.timecodeTolerance = options.timecodeTolerance ?? 8;
         this.candidate = null;
         this.currentTrack = null;
     }
@@ -41,7 +43,7 @@ class SongValidator {
         }
 
         //CASE 2: AudD returned a different song. Start over with this song as the new candidate.
-        if (this.candidate.id !== id) {
+        if (!areTracksIdentical(this.candidate.track, track)) {
             this.setCandidate(
                 id,
                 track,
@@ -76,6 +78,8 @@ class SongValidator {
                 capturedAt
             );
 
+            this.currentTrack = null;
+
             return {
                 accepted: false,
                 reason: 'elapsed time is not within the threshold',
@@ -105,7 +109,9 @@ class SongValidator {
         }
 
         //track has three matches, and timecodes line up. Listing this as a confirmed track
-        const alreadyConfirmed = this.currentTrack?.id === id;
+        const alreadyConfirmed = this.currentTrack
+            ? areTracksIdentical(this.currentTrack.track, track)
+            : false;
 
         this.currentTrack = {
             id,
