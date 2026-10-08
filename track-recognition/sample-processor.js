@@ -8,6 +8,20 @@ const validator = new SongValidator({
         timecodeTolerance: 12
 });
 
+let currentTrack = null;
+
+function getArtworkUrl(track) {
+    const appleArtwork = track.apple_music?.artwork?.url;
+    const artworkUrl = track.spotify?.album?.images?.[0]?.url
+        ?? (appleArtwork
+            ? appleArtwork.replace('{w}', '600').replace('{h}', '600')
+            : null)
+        ?? track.deezer?.album?.cover_big
+        ?? track.artwork;
+
+    return typeof artworkUrl === 'string' ? artworkUrl : null;
+} // returns atwork for track, first spotify, then apple music, ect. returns nothing if theres no valid artwork url. 
+
 async function processSample(filePath, capturedAt) {
     console.log('\n================================');
     console.log('File:', path.basename(filePath));
@@ -37,8 +51,13 @@ async function processSample(filePath, capturedAt) {
     const validation = validator.process(track, capturedAt);
 
     if (validation.accepted && validation.newTrack) {
-
-        const confirmedTrack = validation.track;
+        currentTrack = {
+            artist: track.artist,
+            title: track.title,
+            album: track.album ?? track.spotify?.album?.name ?? track.apple_music?.album ?? null,
+            artworkUrl: getArtworkUrl(track),
+            confirmedAt: capturedAt
+        }; // update the current track for the dashboard
 
         console.log('\n*** NEW CONFIRMED TRACK ***');
         console.log(`${confirmedTrack.artist} - ${confirmedTrack.title}`);
@@ -70,5 +89,9 @@ async function processSample(filePath, capturedAt) {
     return validation;
 }
 
+function getCurrentTrack() {
+    return currentTrack;
+} // keeps track of the last confirmed track
+// so that the dashboard can display it.
 
-module.exports = { processSample };
+module.exports = { processSample, getCurrentTrack };
