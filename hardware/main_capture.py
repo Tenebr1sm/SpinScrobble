@@ -8,6 +8,9 @@ import requests
 import time
 import threading
 
+#--verbose flag to specify whether to show logging during script or not
+VERBOSE = "--verbose" in sys.argv
+
 # 16 chunks * 0.5 seconds = 8 second rolling window
 # Used to store in memory
 audio_buffer = collections.deque(maxlen=16)
@@ -110,8 +113,10 @@ def audio_callback(indata, frames, time_info, status):
             consecutive_high = 0
 
     # Print updates whenever state changes or log current levels
-    state_change = f"  <-- [EVENT: {previous_state} -> {current_state}]" if current_state != previous_state else ""
-    print(f"RMS: {dbfs:6.2f} dBFS | State: {current_state:<15} (Raw: {raw_state}){state_change}")
+    # Print and log only if verbose flag is used
+    if VERBOSE:
+        state_change = f"  <-- [EVENT: {previous_state} -> {current_state}]" if current_state != previous_state else ""
+        print(f"RMS: {dbfs:6.2f} dBFS | State: {current_state:<15} (Raw: {raw_state}){state_change}")
 
     # If the state just officially flipped to playing, ship the buffer!
     # Fire if music is playing, buffer is full, and 10 seconds have passed since the last API call
