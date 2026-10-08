@@ -3,12 +3,27 @@ const express = require('express');
 
 // Imports the two functions from your new last-fm service folder
 const lastfmAuth = require('./last-fm/auth'); 
-const { processSample } = require('./sample-processor');
+const { processSample, getCurrentTrack } = require('./sample-processor');
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
+app.get('/api/current-track', (req, res) => {
+  res.json({ track: getCurrentTrack() });
+}); // route to get the current track for the dashboard
 
 // Route 1: Send the user to the Last.fm login screen
 app.get('/login', (req, res) => {
