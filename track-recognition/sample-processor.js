@@ -5,7 +5,7 @@ const { scrobbleToFm } = require('./lastfm-client.js');
 
 const validator = new SongValidator({
         requiredMatches: 3,
-        timecodeTolerance: 4
+        timecodeTolerance: 12
 });
 
 let currentTrack = null;
@@ -26,7 +26,7 @@ async function processSample(filePath, capturedAt) {
     console.log('\n================================');
     console.log('File:', path.basename(filePath));
 
-    console.log('Mock capture timestamp:', capturedAt);
+    console.log('Capture timestamp:', capturedAt);
 
     let track;
 
@@ -60,7 +60,18 @@ async function processSample(filePath, capturedAt) {
         }; // update the current track for the dashboard
 
         console.log('\n*** NEW CONFIRMED TRACK ***');
-        console.log(`${track.artist} - ${track.title}`);
+        console.log(`${confirmedTrack.artist} - ${confirmedTrack.title}`);
+
+        try {
+            await scrobbleToFm(
+                confirmedTrack.artist,
+                confirmedTrack.title,
+                confirmedTrack.album ?? ''
+            );
+        } catch (e) {
+            console.error('Last.fm submission failed: ', e);
+        }
+
     }
 
     console.log('Validation result:');
