@@ -72,8 +72,8 @@ app.post('/api/sample', async (req, res) => {
 });
 
 // Server intialization
-app.listen(port, () => {
-  console.log(`SpinScrobble backend listening on port ${port}`);
+app.listen(port,'0.0.0.0', () => {
+  console.log(`SpinScrobble backend listening on port ${port} (all interfaces)`);
   console.log(`Auth server running. Open http://localhost:${port}/login in your browser to authenticate.`);
 });
 
