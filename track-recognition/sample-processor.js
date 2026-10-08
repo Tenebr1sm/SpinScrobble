@@ -60,13 +60,13 @@ async function processSample(filePath, capturedAt) {
         }; // update the current track for the dashboard
 
         console.log('\n*** NEW CONFIRMED TRACK ***');
-        console.log(`${confirmedTrack.artist} - ${confirmedTrack.title}`);
+        console.log(`${currentTrack.artist} - ${currentTrack.title}`);
 
         try {
             await scrobbleToFm(
-                confirmedTrack.artist,
-                confirmedTrack.title,
-                confirmedTrack.album ?? ''
+                currentTrack.artist,
+                currentTrack.title,
+                currentTrack.album ?? ''
             );
         } catch (e) {
             console.error('Last.fm submission failed: ', e);
