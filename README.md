@@ -2,7 +2,9 @@
 In development web app that listens to a record player via computer and automatically scrobbles through last.fm.
 
 ## Setup
-To setup, run `./setup.sh` and follow the steps it gives to add the API keys to the .env files. 
+To setup, run these commands in bash. Git Bash is recommended for Windows.
+
+Run `./setup.sh` and follow the steps it gives to add the API keys to the .env files. 
 
 After that, run `./start.sh` to start the program. 
 
