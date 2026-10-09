@@ -157,7 +157,9 @@ def process_and_send_sample(buffer_snapshot, sample_rate=44100):
     try:
         response = requests.post("http://localhost:3000/api/sample", json=payload, timeout=5.0)
         data = response.json()
-        print(f"\n[API] Success! Node responded: {data}")
+
+        if VERBOSE:
+            print(f"\n[API] Success! Node responded: {data}")
 
         # adjust cooldown based on whether track was recognized
         validation = data.get("validation", {})
