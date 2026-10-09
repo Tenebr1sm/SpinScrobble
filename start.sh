@@ -59,7 +59,11 @@ sleep 3
 if [ -d "hardware" ]; then
     echo -e "Starting Python hardware engine...\n"
     cd hardware
-    source venv/bin/activate
+    if [ -f "venv/Scripts/activate" ]; then
+        source venv/Scripts/activate
+    elif [ -f "venv/bin/activate" ]; then
+        source venv/bin/activate
+    fi
 
     if [ $VERBOSE -eq 0 ]; then
         #delayed background subshell block () to print URLs after python loads
