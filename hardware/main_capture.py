@@ -7,6 +7,7 @@ import wave
 import requests
 import time
 import threading
+from datetime import datetime
 
 #--verbose flag to specify whether to show logging during script or not
 VERBOSE = "--verbose" in sys.argv
@@ -171,14 +172,14 @@ def process_and_send_sample(buffer_snapshot, sample_rate=44100):
             if accepted:
                 is_track_confirmed = True
                 poll_interval = CONFIRMED_COOLDOWN
-                print(f"[API TImer] Track confirmed. Next request in {CONFIRMED_COOLDOWN}s.")
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] [API Timer] Track confirmed. Next request in {CONFIRMED_COOLDOWN}s.")
             elif reason == "No track":
                 poll_interval = UNRECOGNIZED_COOLDOWN
-                print(f"[API Timer] No track recognized. Next request in {UNRECOGNIZED_COOLDOWN}s.")
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] [API Timer] No track recognized. Next request in {UNRECOGNIZED_COOLDOWN}s.")
             else:
                 poll_interval = SEEK_INTERVAL
-                print(f"[API Timer] Seeking match ({reason} | Match {matches}/3). Next request in {SEEK_INTERVAL}s.")
-
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] [API Timer] Seeking match ({reason} | Match {matches}/3). Next request in {SEEK_INTERVAL}s.")
+                
     except requests.RequestException as e:
         print(f"\n[API] Node backend unreachable. Error: {e}")
         poll_interval = UNRECOGNIZED_COOLDOWN

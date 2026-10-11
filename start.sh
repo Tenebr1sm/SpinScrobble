@@ -33,7 +33,7 @@ else
     exit 1
 fi
 
-# Give the backend a second to boot up and open port 3000
+#give the backend a second to boot up and open port 3000
 sleep 1
 
 #start Expo dashboard in background
@@ -59,6 +59,7 @@ sleep 3
 if [ -d "hardware" ]; then
     echo -e "Starting Python hardware engine...\n"
     cd hardware
+    #do checks for windows and linux systems
     if [ -f "venv/Scripts/activate" ]; then
         source venv/Scripts/activate
     elif [ -f "venv/bin/activate" ]; then
