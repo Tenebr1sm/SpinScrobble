@@ -15,19 +15,7 @@ function normalizeText(text, isTitle = false) {
     return cleaned.replace(/[-_.:|()[\]]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-// Safely strips "Remaster" tags for the frontend UI
-function cleanDisplayTitle(text) {
-    if (!text) return "";
-    
-    return text
-        // Remove anything in brackets/parentheses containing "remaster" (case-insensitive)
-        .replace(/[\(\[].*?remaster.*?[\)\]]/gi, '')
-        // Remove loose tags like " - 2011 Remaster"
-        .replace(/-\s*.*?remaster.*/gi, '')
-        // Clean up any leftover trailing hyphens or extra spaces
-        .replace(/\s*-\s*$/, '')
-        .trim();
-}
+
 
 
 /*
@@ -117,8 +105,7 @@ function areTracksIdentical(response1, response2) {
 
 module.exports = {
     normalizeText,
-    areTracksIdentical,
-    cleanDisplayTitle
+    areTracksIdentical
 };
 
 
