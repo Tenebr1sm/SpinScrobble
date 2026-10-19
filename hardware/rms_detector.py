@@ -24,7 +24,7 @@ def get_raw_state(dbfs: float, play_threshold: float = -33.0, noise_floor: float
     else:
         return "NEEDLE_DROPPED"
 
-def analyze_wav_file(file_path: str, chunk_duration: float = 0.5, threshold_db: float = -33.0):
+def analyze_wav_file(file_path: str, chunk_duration: float = 0.5, threshold_db: float = -33.0, idle_timeout: float = 300.0):
     """Analyze a WAV file and print debounced audio state for each chunk"""
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")
@@ -56,7 +56,7 @@ def analyze_wav_file(file_path: str, chunk_duration: float = 0.5, threshold_db: 
             print(f" File: {os.path.basename(file_path)}")
             print(f" Format: {sample_rate}Hz | {num_channels} Ch | {sample_width * 8}-bit PCM")
             print(f" Total Duration: {total_duration:.2f}s | Chunk Size: {chunk_duration}s")
-            print(f" Play Threshold: {threshold_db} dBFS")
+            print(f" Play Threshold: {threshold_db} dBFS | Idle Timeout: {idle_timeout}s")
             print("=" * 65)
             print(f"{'Time Frame':<18} | {'RMS (dBFS)':<12} | {'Detected State'}")
             print("-" * 65)
@@ -120,7 +120,7 @@ def analyze_wav_file(file_path: str, chunk_duration: float = 0.5, threshold_db: 
                     else:
                         consecutive_high = 0
 
-                if current_state == "NEEDLE_DROPPED":
+                if current_state == "NEEDLE_LIFTED":
                     consecutive_lifted_time += chunk_duration
                 else:
                     consecutive_lifted_time = 0.0
