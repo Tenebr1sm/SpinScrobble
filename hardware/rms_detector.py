@@ -68,6 +68,10 @@ def analyze_wav_file(file_path: str, chunk_duration: float = 0.5, threshold_db: 
             current_state = "NEEDLE_LIFTED"
             consecutive_high = 0
             consecutive_low = 0
+
+            # idle tracking variable
+            consecutive_lifted_time = 0.0
+
             # should avoid rapid bumps in dB making the state fluctuate
             MIN_SUSTAIN_CHUNKS = 3
 
@@ -116,6 +120,10 @@ def analyze_wav_file(file_path: str, chunk_duration: float = 0.5, threshold_db: 
                     else:
                         consecutive_high = 0
 
+                if current_state == "NEEDLE_DROPPED":
+                    consecutive_lifted_time += chunk_duration
+                else:
+                    consecutive_lifted_time = 0.0
 
                 start_time = chunk_idx * chunk_duration
                 end_time = start_time + chunk_duration
@@ -126,6 +134,12 @@ def analyze_wav_file(file_path: str, chunk_duration: float = 0.5, threshold_db: 
                     playing_chunks += 1
                 total_chunks += 1
                 chunk_idx += 1
+
+                # check idle timeout threshold
+                if consecutive_lifted_time >= idle_timeout:
+                    print("-" * 65)
+                    print(f"[AUTO SHUTDOWN] No audio detected for {consecutive_lifted_time:.2f}s. Stopping analysis.")
+                    break
 
             print("-" * 65)
             print(f"Analysis Complete: {playing_chunks}/{total_chunks} chunks detected as TRACK_PLAYING")
@@ -139,6 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("file_path", type=str, help="Path to the WAV file to analyze.")
     parser.add_argument("--chunk_duration", type=float, default=0.5, help="Duration of each chunk in seconds (default: 0.5s).")
     parser.add_argument("--threshold_db", type=float, default=-33.0, help="Threshold in dBFS to detect TRACK_PLAYING (default: -33.0 dBFS).")
+    parser.add_argument("--idle_timeout", type=float, default=300.0, help="Idle timeout in seconds to stop analysis if no audio is detected (default: 300.0s).")
 
     args = parser.parse_args()
-    analyze_wav_file(args.file_path, chunk_duration=args.chunk_duration, threshold_db=args.threshold_db)
+    analyze_wav_file(args.file_path, chunk_duration=args.chunk_duration, threshold_db=args.threshold_db, idle_timeout=args.idle_timeout)
