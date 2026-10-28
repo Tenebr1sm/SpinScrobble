@@ -229,11 +229,6 @@ export default function App() {
                       : 'Drop the needle on a record to begin.'}
                   </Text>
                 </Card.Content>
-                <Card.Actions style={{ justifyContent: 'center', marginTop: 16 }}>
-                  <Button mode="outlined" onPress={refreshTrack}>
-                    Check Now
-                  </Button>
-                </Card.Actions>
               </Card>
             )
           ) : (
