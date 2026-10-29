@@ -8,6 +8,10 @@ const { processSample, getCurrentTrack } = require('./sample-processor');
 const app = express();
 const port = 3000;
 
+// Track hardware state so lifting the needle clears the dashboard
+let turntableState = 'NEEDLE_LIFTED';
+let isTrackClearedByLift = false;
+
 app.use(express.json());
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -22,8 +26,24 @@ app.use((req, res, next) => {
 });
 
 app.get('/api/current-track', (req, res) => {
-  res.json({ track: getCurrentTrack() });
+  const activeTrack = isTrackClearedByLift ? null : getCurrentTrack();
+  res.json({
+    track: activeTrack,
+    turntableState,
+  });
 }); // route to get the current track for the dashboard
+
+// Hardware state bridge route (called when needle is lifted/dropped/playing)
+app.post('/api/state', (req, res) => {
+  const { state } = req.body;
+  if (state) {
+    turntableState = state;
+    if (state === 'NEEDLE_LIFTED') {
+      isTrackClearedByLift = true;
+    }
+  }
+  res.json({ status: 'ok', turntableState });
+});
 
 // Route 1: Send the user to the Last.fm login screen
 app.get('/login', (req, res) => {
@@ -64,6 +84,10 @@ app.post('/api/sample', async (req, res) => {
 
     try {
         const validationResult = await processSample(filepath, timestamp);
+        if (validationResult && validationResult.accepted) {
+            isTrackClearedByLift = false;
+            turntableState = 'TRACK_PLAYING';
+        }
         res.json({ status: 'processed', validation: validationResult });
     } catch (err) {
         console.error('[BACKEND] Error processing sample:', err);
@@ -76,13 +100,3 @@ app.listen(port,'0.0.0.0', () => {
   console.log(`SpinScrobble backend listening on port ${port} (all interfaces)`);
   console.log(`Auth server running. Open http://localhost:${port}/login in your browser to authenticate.`);
 });
-
-/* 
-run node server.js
-open localhost:3000/login
-copy session key into .env file
-ex: LASTFM_SESSION_KEY=whateverthekeyis
-kill server
-run node test-scrobble.js
-it should show up in scrobble profile. will send apis in dms
-*/

@@ -53,6 +53,18 @@ is_track_confirmed = False
 is_sending_sample = False
 
 
+def notify_backend_state(state):
+    """Notifies the Node.js backend whenever the turntable state changes."""
+    try:
+        requests.post(
+            "http://localhost:3000/api/state",
+            json={"state": state, "timestamp": int(time.time() * 1000)},
+            timeout=2.0
+        )
+    except requests.RequestException:
+        pass
+
+
 def audio_callback(indata, frames, time_info, status):
     global current_state, consecutive_high, consecutive_low, last_sample_time
     global poll_interval, is_track_confirmed, is_sending_sample
@@ -112,6 +124,10 @@ def audio_callback(indata, frames, time_info, status):
                 poll_interval = SEEK_INTERVAL
         else:
             consecutive_high = 0
+
+    # Notify Node.js backend whenever the hardware state changes (e.g., NEEDLE_LIFTED)
+    if current_state != previous_state:
+        threading.Thread(target=notify_backend_state, args=(current_state,), daemon=True).start()
 
     # Print updates whenever state changes or log current levels
     # Print and log only if verbose flag is used
