@@ -1,8 +1,8 @@
-require('dotenv').config(); 
+require('dotenv').config();
 const express = require('express');
+const axios = require('axios');
 
-// Imports the two functions from your new last-fm service folder
-const lastfmAuth = require('./last-fm/auth'); 
+const lastfmAuth = require('./last-fm/auth');
 const { processSample, getCurrentTrack } = require('./sample-processor');
 
 const app = express();
@@ -25,13 +25,47 @@ app.use((req, res, next) => {
   next();
 });
 
+// Helper that uses ONLY the Last.fm API (track.getInfo) to get the album cover
+async function fetchLastFmArtwork(artist, track, apiKey) {
+  try {
+    const infoRes = await axios.get('https://ws.audioscrobbler.com/2.0/', {
+      params: {
+        method: 'track.getInfo',
+        artist,
+        track,
+        api_key: apiKey,
+        autocorrect: 1,
+        format: 'json',
+      },
+      timeout: 4000,
+    });
+
+    const images = infoRes.data?.track?.album?.image || [];
+    const coverUrl =
+      images.find((img) => img.size === 'extralarge')?.['#text'] ||
+      images.find((img) => img.size === 'large')?.['#text'] ||
+      images.find((img) => img.size === 'medium')?.['#text'] ||
+      null;
+
+    // Filter out Last.fm's default grey star placeholder image
+    if (coverUrl && !coverUrl.includes('2a96cbd8b46e442fc41c2b86b821562f')) {
+      return coverUrl;
+    }
+  } catch {
+    // Ignore failed lookups for individual tracks
+  }
+
+  return null;
+}
+
+// Route to get the current track for the dashboard
 app.get('/api/current-track', (req, res) => {
   const activeTrack = isTrackClearedByLift ? null : getCurrentTrack();
   res.json({
     track: activeTrack,
     turntableState,
   });
-}); // route to get the current track for the dashboard
+});
 
 // Hardware state bridge route (called when needle is lifted/dropped/playing)
 app.post('/api/state', (req, res) => {
@@ -45,6 +79,71 @@ app.post('/api/state', (req, res) => {
   res.json({ status: 'ok', turntableState });
 });
 
+// Route to fetch similar track recommendations + Last.fm album artwork
+app.get('/api/recommendations', async (req, res) => {
+  const { artist, track } = req.query;
+  const apiKey = process.env.LASTFM_API_KEY;
+
+  if (!artist || !track || !apiKey) {
+    return res.json({ recommendations: [] });
+  }
+
+  try {
+    const similarRes = await axios.get('https://ws.audioscrobbler.com/2.0/', {
+      params: {
+        method: 'track.getsimilar',
+        artist,
+        track,
+        api_key: apiKey,
+        autocorrect: 1,
+        limit: 8,
+        format: 'json',
+      },
+    });
+
+    let rawTracks = similarRes.data?.similartracks?.track || [];
+
+    if (rawTracks.length === 0) {
+      const topRes = await axios.get('https://ws.audioscrobbler.com/2.0/', {
+        params: {
+          method: 'artist.gettoptracks',
+          artist,
+          api_key: apiKey,
+          autocorrect: 1,
+          limit: 8,
+          format: 'json',
+        },
+      });
+
+      const topTracks = topRes.data?.toptracks?.track || [];
+      rawTracks = topTracks.filter(
+        (t) => t.name.toLowerCase() !== track.toLowerCase()
+      );
+    }
+
+    const recommendations = await Promise.all(
+      rawTracks.slice(0, 8).map(async (item) => {
+        const recTitle = item.name;
+        const recArtist = item.artist?.name || artist;
+        const artworkUrl = await fetchLastFmArtwork(recArtist, recTitle, apiKey);
+
+        return {
+          title: recTitle,
+          artist: recArtist,
+          url: item.url,
+          artworkUrl,
+          match: item.match ? Math.round(Number(item.match) * 100) : null,
+        };
+      })
+    );
+
+    res.json({ recommendations });
+  } catch (err) {
+    console.error('[BACKEND] Error fetching recommendations:', err.message);
+    res.json({ recommendations: [] });
+  }
+});
+
 // Route 1: Send the user to the Last.fm login screen
 app.get('/login', (req, res) => {
   res.redirect(lastfmAuth.getLoginUrl());
@@ -53,21 +152,22 @@ app.get('/login', (req, res) => {
 // Route 2: Catch the redirect and the token from Last.fm
 app.get('/callback', async (req, res) => {
   const token = req.query.token;
-  
+
   if (!token) {
     return res.status(400).send('Authentication failed: No token provided.');
   }
 
   try {
-    // Pass the token to your auth service to handle the exchange
     const { sessionKey, username } = await lastfmAuth.getSessionKey(token);
-    
+
     console.log('\n--- AUTHENTICATION SUCCESS ---');
     console.log(`User: ${username}`);
     console.log(`Session Key (sk): ${sessionKey}`);
     console.log('Copy this Session Key into your .env file!\n');
-    
-    res.send(`Successfully authenticated as ${username}! You can close this tab and check your VS Code terminal.`);
+
+    res.send(
+      `Successfully authenticated as ${username}! You can close this tab and check your VS Code terminal.`
+    );
   } catch (err) {
     console.error(err);
     res.status(500).send('Failed to exchange token for session key.');
@@ -76,27 +176,29 @@ app.get('/callback', async (req, res) => {
 
 // Python bridge route
 app.post('/api/sample', async (req, res) => {
-    const { filepath, timestamp } = req.body;
+  const { filepath, timestamp } = req.body;
 
-    if (!filepath || !timestamp) {
-        return res.status(400).json({ error: 'Missing filepath or timestamp' });
-    }
+  if (!filepath || !timestamp) {
+    return res.status(400).json({ error: 'Missing filepath or timestamp' });
+  }
 
-    try {
-        const validationResult = await processSample(filepath, timestamp);
-        if (validationResult && validationResult.accepted) {
-            isTrackClearedByLift = false;
-            turntableState = 'TRACK_PLAYING';
-        }
-        res.json({ status: 'processed', validation: validationResult });
-    } catch (err) {
-        console.error('[BACKEND] Error processing sample:', err);
-        res.status(500).json({ error: 'Failed to process sample' });
+  try {
+    const validationResult = await processSample(filepath, timestamp);
+    if (validationResult && validationResult.accepted) {
+      isTrackClearedByLift = false;
+      turntableState = 'TRACK_PLAYING';
     }
+    res.json({ status: 'processed', validation: validationResult });
+  } catch (err) {
+    console.error('[BACKEND] Error processing sample:', err);
+    res.status(500).json({ error: 'Failed to process sample' });
+  }
 });
 
-// Server intialization
-app.listen(port,'0.0.0.0', () => {
+// Server initialization
+app.listen(port, '0.0.0.0', () => {
   console.log(`SpinScrobble backend listening on port ${port} (all interfaces)`);
-  console.log(`Auth server running. Open http://localhost:${port}/login in your browser to authenticate.`);
+  console.log(
+    `Auth server running. Open http://localhost:${port}/login in your browser to authenticate.`
+  );
 });

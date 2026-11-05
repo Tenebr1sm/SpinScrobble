@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Linking, Platform, SafeAreaView, View } from 'react-native';
+import { Linking, Platform, SafeAreaView, ScrollView, View } from 'react-native';
 import {
   MD3DarkTheme,
   MD3LightTheme,
@@ -12,6 +12,7 @@ import {
 import HeaderControls from './components/HeaderControls';
 import HistoryCard from './components/HistoryCard';
 import NowPlayingCard from './components/NowPlayingCard';
+import RecommendationsBar from './components/RecommendationsBar';
 import WaitingCard from './components/WaitingCard';
 import { useTrackPoller } from './hooks/useTrackPoller';
 
@@ -70,44 +71,57 @@ export default function App() {
       settings={{ icon: () => null }}
     >
       <Surface style={{ flex: 1 }}>
-        <SafeAreaView style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
+        <SafeAreaView style={{ flex: 1 }}>
           <StatusBar style={isDarkMode ? 'light' : 'dark'} />
 
-          <View style={{ width: '100%', maxWidth: 560, alignSelf: 'center' }}>
-            <HeaderControls
-              isPolling={isPolling}
-              onTogglePolling={togglePolling}
-              isDarkMode={isDarkMode}
-              onToggleTheme={() => setIsDarkMode((prev) => !prev)}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              historyCount={history.length}
-            />
-
-            {activeTab === 'nowPlaying' ? (
-              !isWaitingScreen ? (
-                <NowPlayingCard
-                  track={track}
-                  isNewSongBannerVisible={statusPhase === 'detected'}
-                  onOpenDiscogs={openDiscogsRelease}
-                  onOpenLastFm={openLastFmTrack}
-                />
-              ) : (
-                <WaitingCard
-                  loading={loading}
-                  isPolling={isPolling}
-                  connectionError={connectionError}
-                  onRetry={refreshTrack}
-                />
-              )
-            ) : (
-              <HistoryCard
-                history={history}
-                onClear={clearHistory}
-                onSelectTrack={openLastFmTrack}
+          {/* Outer ScrollView keeps content centered when short, and scrollable when tall */}
+          <ScrollView
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: 'center',
+              paddingVertical: 28,
+              paddingHorizontal: 20,
+            }}
+          >
+            <View style={{ width: '100%', maxWidth: 560, alignSelf: 'center' }}>
+              <HeaderControls
+                isPolling={isPolling}
+                onTogglePolling={togglePolling}
+                isDarkMode={isDarkMode}
+                onToggleTheme={() => setIsDarkMode((prev) => !prev)}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                historyCount={history.length}
               />
-            )}
-          </View>
+
+              {activeTab === 'nowPlaying' ? (
+                !isWaitingScreen ? (
+                  <View>
+                    <NowPlayingCard
+                      track={track}
+                      isNewSongBannerVisible={statusPhase === 'detected'}
+                      onOpenDiscogs={openDiscogsRelease}
+                      onOpenLastFm={openLastFmTrack}
+                    />
+                    <RecommendationsBar track={track} />
+                  </View>
+                ) : (
+                  <WaitingCard
+                    loading={loading}
+                    isPolling={isPolling}
+                    connectionError={connectionError}
+                    onRetry={refreshTrack}
+                  />
+                )
+              ) : (
+                <HistoryCard
+                  history={history}
+                  onClear={clearHistory}
+                  onSelectTrack={openLastFmTrack}
+                />
+              )}
+            </View>
+          </ScrollView>
 
           <Snackbar
             visible={Boolean(snackbarMessage)}
