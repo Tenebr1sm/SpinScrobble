@@ -161,44 +161,7 @@ app.get('/api/recommendations', async (req, res) => {
     // 1. Try track.getSimilar with the exact artist & track from AudD
     let rawTracks = await querySimilarTracks(artist, track, apiKey);
 
-    // 2. If empty, try stripping "(feat. ...)" or "[...]" noise, OR resolving Last.fm's canonical title via track.search
-    if (rawTracks.length === 0) {
-      const strippedTrack = track
-        .replace(/\s*[\(\[][^)\]]*[\)\]]/g, '')
-        .trim();
-
-      if (strippedTrack && strippedTrack.toLowerCase() !== track.toLowerCase()) {
-        rawTracks = await querySimilarTracks(artist, strippedTrack, apiKey);
-      }
-    }
-
-    if (rawTracks.length === 0) {
-      // Search Last.fm for its canonical track title (e.g. "Ghost Town" -> "Ghost Town (feat. PARTYNEXTDOOR)")
-      const searchRes = await axios.get('https://ws.audioscrobbler.com/2.0/', {
-        params: {
-          method: 'track.search',
-          artist,
-          track,
-          api_key: apiKey,
-          limit: 5,
-          format: 'json',
-        },
-      });
-
-      const candidates = searchRes.data?.results?.trackmatches?.track || [];
-      for (const candidate of candidates) {
-        if (candidate?.name && candidate.name.toLowerCase() !== track.toLowerCase()) {
-          rawTracks = await querySimilarTracks(
-            candidate.artist || artist,
-            candidate.name,
-            apiKey
-          );
-          if (rawTracks.length > 0) break;
-        }
-      }
-    }
-
-    // 3. If Last.fm still has no track-level similarity matrix, use artist.getSimilar
+    // 2. If Last.fm still has no track-level similarity matrix, use artist.getSimilar
     //    and fetch the #1 top track from each similar artist (includes real % match scores!)
     if (rawTracks.length === 0) {
       const simArtistsRes = await axios.get('https://ws.audioscrobbler.com/2.0/', {
@@ -248,25 +211,6 @@ app.get('/api/recommendations', async (req, res) => {
 
         rawTracks = artistTopTracks.filter(Boolean);
       }
-    }
-
-    // 4. Final fallback: same artist's top tracks (topRes)
-    if (rawTracks.length === 0) {
-      const topRes = await axios.get('https://ws.audioscrobbler.com/2.0/', {
-        params: {
-          method: 'artist.getTopTracks',
-          artist,
-          api_key: apiKey,
-          autocorrect: 1,
-          limit: 8,
-          format: 'json',
-        },
-      });
-
-      const topTracks = topRes.data?.toptracks?.track || [];
-      rawTracks = topTracks.filter(
-        (t) => t.name.toLowerCase() !== track.toLowerCase()
-      );
     }
 
     // 5. Enrich the 8 recommended tracks with Last.fm album cover art
