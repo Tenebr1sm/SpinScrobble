@@ -1,7 +1,7 @@
 const { Client } = require('@xhayper/discord-rpc');
 require('dotenv').config();
 
-const rpcClient = new Client({ clientId: 1562650239486402630 });
+const rpcClient = new Client({ clientId: '1562650239486402630' });
 const PI_URL = process.env.PI_URL;
 
 async function checkTurntable() {
