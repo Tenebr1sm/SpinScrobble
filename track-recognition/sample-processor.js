@@ -3,6 +3,8 @@ const { uploadToAud } = require('./audd-client.js');
 const { SongValidator } = require('./song-validator.js');
 const { scrobbleToFm } = require('./lastfm-client.js');
 
+const lastfmArtwork = require('./last-fm/fetchLastFmArtwork');
+
 const validator = new SongValidator({
         requiredMatches: 3,
         timecodeTolerance: 12
@@ -10,9 +12,10 @@ const validator = new SongValidator({
 
 let currentTrack = null;
 
-function getArtworkUrl(track) {
+function getArtworkUrl(track, lastFmArtworkUrl = null) {
     const appleArtwork = track.apple_music?.artwork?.url;
-    const artworkUrl = track.spotify?.album?.images?.[0]?.url
+    const artworkUrl = lastFmArtworkUrl
+        ?? track.spotify?.album?.images?.[0]?.url
         ?? (appleArtwork
             ? appleArtwork.replace('{w}', '600').replace('{h}', '600')
             : null)
@@ -51,11 +54,13 @@ async function processSample(filePath, capturedAt) {
     const validation = validator.process(track, capturedAt);
 
     if (validation.accepted && validation.newTrack) {
+
+        let { artworkUrl, albumName } = await lastfmArtwork.fetchLastFmArtwork(track.artist, track.title);
         currentTrack = {
             artist: track.artist,
             title: track.title,
-            album: track.album ?? track.spotify?.album?.name ?? track.apple_music?.album ?? null,
-            artworkUrl: getArtworkUrl(track),
+            album: albumName ?? track.album ?? track.spotify?.album?.name ?? track.apple_music?.album ?? null,
+            artworkUrl: getArtworkUrl(track, artworkUrl),
             confirmedAt: capturedAt
         }; // update the current track for the dashboard
 

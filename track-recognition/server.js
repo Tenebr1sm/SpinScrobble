@@ -3,6 +3,7 @@ const express = require('express');
 const axios = require('axios');
 
 const lastfmAuth = require('./last-fm/auth');
+const lastfmArtwork = require('./last-fm/fetchLastFmArtwork');
 const { processSample, getCurrentTrack } = require('./sample-processor');
 
 const app = express();
@@ -26,37 +27,37 @@ app.use((req, res, next) => {
 });
 
 // Helper that uses ONLY the Last.fm API (track.getInfo) to get the album cover
-async function fetchLastFmArtwork(artist, track, apiKey) {
-  try {
-    const infoRes = await axios.get('https://ws.audioscrobbler.com/2.0/', {
-      params: {
-        method: 'track.getInfo',
-        artist,
-        track,
-        api_key: apiKey,
-        autocorrect: 1,
-        format: 'json',
-      },
-      timeout: 4000,
-    });
+// async function fetchLastFmArtwork(artist, track, apiKey) {
+//   try {
+//     const infoRes = await axios.get('https://ws.audioscrobbler.com/2.0/', {
+//       params: {
+//         method: 'track.getInfo',
+//         artist,
+//         track,
+//         api_key: apiKey,
+//         autocorrect: 1,
+//         format: 'json',
+//       },
+//       timeout: 4000,
+//     });
 
-    const images = infoRes.data?.track?.album?.image || [];
-    const coverUrl =
-      images.find((img) => img.size === 'extralarge')?.['#text'] ||
-      images.find((img) => img.size === 'large')?.['#text'] ||
-      images.find((img) => img.size === 'medium')?.['#text'] ||
-      null;
+//     const images = infoRes.data?.track?.album?.image || [];
+//     const coverUrl =
+//       images.find((img) => img.size === 'extralarge')?.['#text'] ||
+//       images.find((img) => img.size === 'large')?.['#text'] ||
+//       images.find((img) => img.size === 'medium')?.['#text'] ||
+//       null;
 
-    // Filter out Last.fm's default grey star placeholder image
-    if (coverUrl && !coverUrl.includes('2a96cbd8b46e442fc41c2b86b821562f')) {
-      return coverUrl;
-    }
-  } catch {
-    // Ignore failed lookups for individual tracks
-  }
+//     // Filter out Last.fm's default grey star placeholder image
+//     if (coverUrl && !coverUrl.includes('2a96cbd8b46e442fc41c2b86b821562f')) {
+//       return coverUrl;
+//     }
+//   } catch {
+//     // Ignore failed lookups for individual tracks
+//   }
 
-  return null;
-}
+//   return null;
+// }
 
 // Route to get the current track for the dashboard
 app.get('/api/current-track', (req, res) => {
@@ -125,7 +126,7 @@ app.get('/api/recommendations', async (req, res) => {
       rawTracks.slice(0, 8).map(async (item) => {
         const recTitle = item.name;
         const recArtist = item.artist?.name || artist;
-        const artworkUrl = await fetchLastFmArtwork(recArtist, recTitle, apiKey);
+        const { artworkUrl } = await lastfmArtwork.fetchLastFmArtwork(recArtist, recTitle, apiKey);
 
         return {
           title: recTitle,
@@ -202,3 +203,4 @@ app.listen(port, '0.0.0.0', () => {
     `Auth server running. Open http://localhost:${port}/login in your browser to authenticate.`
   );
 });
+
